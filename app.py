@@ -25,10 +25,17 @@ toolbar = DebugToolbarExtension(app)
 
 connect_db(app)
 
+@app.errorhandler(404)
+def page_not_found(e):
+    """
+    Custom 404 Error Page
+    """
+    do_logout()
+    return render_template('404.html'), 404
+
 
 ##############################################################################
 # User signup/login/logout
-
 
 @app.before_request
 def add_user_to_g():
