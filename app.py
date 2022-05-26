@@ -1,3 +1,4 @@
+from email import message
 import os
 
 from flask import Flask, render_template, request, flash, redirect, session, g
@@ -5,7 +6,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, ProfileEditForm
-from models import db, connect_db, User, Message
+from models import Likes, db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
 
@@ -152,6 +153,7 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
+    
     return render_template('users/show.html', user=user, messages=messages)
 
 
@@ -257,6 +259,41 @@ def delete_user():
     return redirect("/signup")
 
 
+@app.route('/users/add_like/<int:message_id>', methods=["GET", "POST"])
+def messages_likes(message_id):
+    """New feature that allows a user to 'like' a warble"""
+    
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    
+    check_msg_like = Likes.query.filter(Likes.user_id == g.user.id, Likes.message_id == message_id).one_or_none()
+    if check_msg_like is None:
+        new_like = Likes(user_id=g.user.id, message_id=message_id)
+        db.session.add(new_like)
+    else:
+        db.session.delete(check_msg_like)
+    
+    db.session.commit()
+    return redirect("/")
+
+
+@app.route('/users/<int:user_id>/liked_warbles')
+def users_liked_warbles(user_id):
+    """Show list of liked warbles of this user."""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+
+    user = User.query.get_or_404(user_id)
+    msg_liked = [msg.id for msg in user.likes]
+    messages = Message.query.filter(Message.id.in_(msg_liked)).all()
+
+    return render_template('/users/liked_warbles.html', user=user, messages=messages)
+
+
+
 ##############################################################################
 # Messages routes:
 
@@ -309,7 +346,6 @@ def messages_destroy(message_id):
 ##############################################################################
 # Homepage and error pages
 
-
 @app.route('/')
 def homepage():
     """Show homepage:
@@ -322,8 +358,9 @@ def homepage():
         following_users = [user_follow.id for user_follow in g.user.following]
         following_users.append(g.user.id)
         messages = (Message.query.filter(Message.user_id.in_(following_users)).order_by(Message.timestamp.desc()).limit(100).all())
+        msg_likes = [msg_like.message_id for msg_like in Likes.query.filter_by(user_id=g.user.id).all()]
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, likes=msg_likes)
 
     else:
         return render_template('home-anon.html')
