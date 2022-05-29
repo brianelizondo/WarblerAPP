@@ -34,3 +34,11 @@ class ProfileEditForm(FlaskForm):
     header_image_url = StringField('(Optional) Header Image URL')
     bio = TextAreaField('(Optional) Bio')
     password = PasswordField('Password', validators=[Length(min=6)])
+
+
+class EditPasswordForm(FlaskForm):
+    """Form for edit user password"""
+
+    current_password = PasswordField('Current Password', validators=[DataRequired(), Length(min=6)])
+    new_password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
+    new_password_rpt = PasswordField('Repeat New Password', validators=[DataRequired(), Length(min=6)])

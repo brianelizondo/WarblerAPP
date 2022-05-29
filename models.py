@@ -150,6 +150,19 @@ class User(db.Model):
         return user
 
     @classmethod
+    def update_password(cls, new_password, new_password_rpt):
+        """
+        Update the user password
+        Hashes password and return
+        """
+        if new_password == new_password_rpt:
+            hashed_pwd = bcrypt.generate_password_hash(new_password).decode('UTF-8')
+            return hashed_pwd
+        else:
+            return False
+
+
+    @classmethod
     def authenticate(cls, username, password):
         """Find user with `username` and `password`.
 

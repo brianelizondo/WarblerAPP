@@ -465,7 +465,7 @@ p.card-bio {
 
 /* ========================== Signup/Login */
 
-#user_form input.form-control {
+#user_form input.form-control,  #user_pass_form input.form-control{
   font-size: 18px;
   font-weight: bold;
   padding: 12px;

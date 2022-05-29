@@ -6,7 +6,7 @@ from functools import wraps
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm, ProfileEditForm
+from forms import UserAddForm, LoginForm, MessageForm, ProfileEditForm, EditPasswordForm
 from models import Likes, db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -227,6 +227,7 @@ def profile():
     # IMPLEMENT THIS
     user = User.query.get_or_404(g.user.id)
     form = ProfileEditForm(obj=user)
+    form_pass = EditPasswordForm()
 
     if form.validate_on_submit():
         user_check = User.authenticate(g.user.username, form.password.data)
@@ -245,7 +246,35 @@ def profile():
             flash("The password is invalid", "danger")
             return redirect("/")
 
-    return render_template('/users/edit.html', form=form)
+    return render_template('/users/edit.html', form=form, form_pass=form_pass)
+
+
+@app.route('/users/profile/password', methods=["GET", "POST"])
+@login_required
+def update_user_password():
+    """Update password for current user."""
+    user = User.query.get_or_404(g.user.id)
+    form = EditPasswordForm()
+
+    if form.validate_on_submit():
+        user_check = User.authenticate(g.user.username, form.current_password.data)
+
+        if user_check:
+            updated_pass = User.update_password(form.new_password.data, form.new_password_rpt.data)
+            
+            if updated_pass:
+                user.password = updated_pass
+                db.session.commit()
+                flash("Your password was successfully updated", "success")
+                return redirect(url_for('users_show', user_id=g.user.id))
+            else:
+                flash("The new password does not match", "danger")
+                return redirect('/users/profile/password')
+        else:
+            flash("The password is invalid", "danger")
+            return redirect('/users/profile/password')
+
+    return render_template('/users/edit_pass.html', form=form)
 
 
 @app.route('/users/delete', methods=["POST"])

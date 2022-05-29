@@ -27,7 +27,7 @@
 
         <div class="edit-btn-area">
           <button class="btn btn-success">Edit this user!</button>
-          <a href="{{ url_for('users_show', user_id=user_id) }}" class="btn btn-outline-secondary">Cancel</a>
+          <a href="{{ url_for('users_show', user_id=g.user.id) }}" class="btn btn-outline-secondary">Cancel</a>
         </div>
       </form>
     </div>

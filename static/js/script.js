@@ -23,7 +23,7 @@ $( document ).ready(function(){
             });
         }); 
     }
-    $(".modal-body").load("/messages/new");
+    $("#newMsgModal .modal-body").load("/messages/new");
     $("#newMsgModalButton").on("click", function(evt){
         evt.preventDefault();
         $("#newMsgModal").modal("show");
