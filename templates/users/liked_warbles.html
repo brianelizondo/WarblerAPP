@@ -8,7 +8,7 @@
         <li class="list-group-item">
           <a href="/messages/{{ message.id }}" class="message-link"/>
 
-          <a href="/users/{{ message.user_id }}">
+          <a href="{{ url_for('users_show', user_id=message.user_id) }}">
             <img src="{{ message.user.image_url }}" alt="user image" class="timeline-image">
           </a>
 

@@ -12,7 +12,7 @@
                 <img src="{{ followed_user.header_image_url }}" alt="" class="card-hero">
               </div>
               <div class="card-contents">
-                <a href="/users/{{ followed_user.id }}" class="card-link">
+                <a href="{{ url_for('users_show', user_id=followed_user.id) }}" class="card-link">
                   <img src="{{ followed_user.image_url }}" alt="Image for {{ followed_user.username }}" class="card-image">
                   <p>@{{ followed_user.username }}</p>
                 </a>

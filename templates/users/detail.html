@@ -12,7 +12,7 @@
           <li class="stat">
             <p class="small">Messages</p>
             <h4>
-              <a href="/users/{{ user.id }}">{{ user.messages | length }}</a>
+              <a href="{{ url_for('users_show', user_id=user.id) }}">{{ user.messages | length }}</a>
             </h4>
           </li>
           <li class="stat">

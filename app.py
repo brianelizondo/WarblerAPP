@@ -240,7 +240,7 @@ def profile():
             db.session.commit()
             do_login(user)
             flash("Your profile was successfully updated", "success")
-            return redirect(f"/users/{g.user.id}")
+            return redirect(url_for('users_show', user_id=g.user.id))
         else:
             flash("The password is invalid", "danger")
             return redirect("/")
@@ -331,7 +331,7 @@ def messages_destroy(message_id):
     db.session.delete(msg)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}")
+    return redirect(url_for('users_show', user_id=g.user.id))
 
 
 ##############################################################################
