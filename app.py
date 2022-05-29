@@ -282,7 +282,8 @@ def messages_likes(message_id):
         db.session.delete(check_msg_like)
     
     db.session.commit()
-    return redirect("/")
+    # return redirect("/")
+    return "ok"
 
 
 @app.route('/users/<int:user_id>/liked_warbles')
@@ -322,7 +323,8 @@ def messages_add():
         g.user.messages.append(msg)
         db.session.commit()
 
-        return redirect(f"/users/{g.user.id}")
+        # return redirect(f"/users/{g.user.id}")
+        return f"/users/{g.user.id}"
 
     return render_template('messages/new.html', form=form)
 
