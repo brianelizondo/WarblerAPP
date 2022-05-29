@@ -1,7 +1,8 @@
 from email import message
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g
+from flask import Flask, render_template, request, flash, redirect, session, g, url_for
+from functools import wraps
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
@@ -34,6 +35,16 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 
+def login_required(f):
+    """Decorator fuction to check for is-a-user-logged-in"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if g.user is None:
+            flash("Access unauthorized.", "danger")
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
 ##############################################################################
 # User signup/login/logout
 
@@ -63,7 +74,8 @@ def do_logout():
 
 @app.route('/signup', methods=["GET", "POST"])
 def signup():
-    """Handle user signup.
+    """
+    Handle user signup.
 
     Create new user and add to DB. Redirect to home page.
 
@@ -126,13 +138,14 @@ def logout():
     do_logout()
     return redirect('/login')
 
+
 ##############################################################################
 # General user routes:
 
 @app.route('/users')
 def list_users():
-    """Page with listing of users.
-
+    """
+    Page with listing of users.
     Can take a 'q' param in querystring to search by that username.
     """
 
@@ -165,36 +178,27 @@ def users_show(user_id):
 
 
 @app.route('/users/<int:user_id>/following')
+@login_required
 def show_following(user_id):
     """Show list of people this user is following."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     return render_template('users/following.html', user=user)
 
 
 @app.route('/users/<int:user_id>/followers')
+@login_required
 def users_followers(user_id):
     """Show list of followers of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@login_required
 def add_follow(follow_id):
     """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
@@ -204,12 +208,9 @@ def add_follow(follow_id):
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
+@login_required
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     followed_user = User.query.get(follow_id)
     g.user.following.remove(followed_user)
@@ -219,14 +220,11 @@ def stop_following(follow_id):
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
+@login_required
 def profile():
     """Update profile for current user."""
 
     # IMPLEMENT THIS
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
     user = User.query.get_or_404(g.user.id)
     form = ProfileEditForm(obj=user)
 
@@ -251,15 +249,11 @@ def profile():
 
 
 @app.route('/users/delete', methods=["POST"])
+@login_required
 def delete_user():
     """Delete user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
-
     do_logout()
-
     db.session.delete(g.user)
     db.session.commit()
 
@@ -267,12 +261,9 @@ def delete_user():
 
 
 @app.route('/users/add_like/<int:message_id>', methods=["GET", "POST"])
+@login_required
 def messages_likes(message_id):
     """New feature that allows a user to 'like' a warble"""
-    
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
     
     check_msg_like = Likes.query.filter(Likes.user_id == g.user.id, Likes.message_id == message_id).one_or_none()
     if check_msg_like is None:
@@ -287,12 +278,9 @@ def messages_likes(message_id):
 
 
 @app.route('/users/<int:user_id>/liked_warbles')
+@login_required
 def users_liked_warbles(user_id):
     """Show list of liked warbles of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     user = User.query.get_or_404(user_id)
     msg_liked = [msg.id for msg in user.likes]
@@ -306,15 +294,12 @@ def users_liked_warbles(user_id):
 # Messages routes:
 
 @app.route('/messages/new', methods=["GET", "POST"])
+@login_required
 def messages_add():
-    """Add a message:
-
+    """
+    Add a message:
     Show form if GET. If valid, update message and redirect to user page.
     """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     form = MessageForm()
 
@@ -338,12 +323,9 @@ def messages_show(message_id):
 
 
 @app.route('/messages/<int:message_id>/delete', methods=["POST"])
+@login_required
 def messages_destroy(message_id):
     """Delete a message."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     msg = Message.query.get(message_id)
     db.session.delete(msg)
@@ -357,8 +339,8 @@ def messages_destroy(message_id):
 
 @app.route('/')
 def homepage():
-    """Show homepage:
-
+    """
+    Show homepage:
     - anon users: no messages
     - logged in: 100 most recent messages of followed_users
     """
