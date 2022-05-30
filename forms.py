@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField
+from wtforms import StringField, PasswordField, TextAreaField, BooleanField
 from wtforms.validators import DataRequired, Email, Length
 
 
@@ -33,6 +33,7 @@ class ProfileEditForm(FlaskForm):
     image_url = StringField('(Optional) Image URL')
     header_image_url = StringField('(Optional) Header Image URL')
     bio = TextAreaField('(Optional) Bio')
+    is_private = BooleanField('Private Account')
     password = PasswordField('Password', validators=[Length(min=6)])
 
 

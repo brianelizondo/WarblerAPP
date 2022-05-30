@@ -7,7 +7,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, ProfileEditForm, EditPasswordForm
-from models import Likes, db, connect_db, User, Message
+from models import Likes, db, connect_db, User, Message, Follows
 
 CURR_USER_KEY = "curr_user"
 
@@ -44,6 +44,25 @@ def login_required(f):
             return redirect(url_for('login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def check_private_opt(user_id, user_obj):
+    if user_obj.is_private:
+        show_private_opt = False
+        following_users = [user.id for user in g.user.following]
+
+        if user_id in following_users:
+            check_approved = Follows.query.filter(Follows.user_being_followed_id == user_id, Follows.user_following_id == g.user.id).one_or_none()
+            
+            if check_approved is not None:
+                if check_approved.approved:
+                    show_private_opt = True
+                    
+    else:
+        show_private_opt = True
+
+    return show_private_opt
+
 
 ##############################################################################
 # User signup/login/logout
@@ -94,6 +113,7 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
+                is_private=User.is_private.default.arg
             )
             db.session.commit()
 
@@ -174,7 +194,11 @@ def users_show(user_id):
                 .limit(100)
                 .all())
     
-    return render_template('users/show.html', user=user, messages=messages)
+    # check if is a private user account
+    # check if the user follow the private user account and if the user approved to follow
+    show_private_opt = check_private_opt(user_id, user)
+
+    return render_template('users/show.html', user=user, messages=messages, show_private_opt=show_private_opt)
 
 
 @app.route('/users/<int:user_id>/following')
@@ -183,7 +207,8 @@ def show_following(user_id):
     """Show list of people this user is following."""
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/following.html', user=user)
+    show_private_opt = check_private_opt(user_id, user)
+    return render_template('users/following.html', user=user, show_private_opt=show_private_opt)
 
 
 @app.route('/users/<int:user_id>/followers')
@@ -192,7 +217,8 @@ def users_followers(user_id):
     """Show list of followers of this user."""
 
     user = User.query.get_or_404(user_id)
-    return render_template('users/followers.html', user=user)
+    show_private_opt = check_private_opt(user_id, user)
+    return render_template('users/followers.html', user=user, show_private_opt=show_private_opt)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
@@ -203,6 +229,12 @@ def add_follow(follow_id):
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
     db.session.commit()
+    
+    if followed_user.is_private:
+        update_follow = Follows.query.filter(Follows.user_being_followed_id == follow_id, Follows.user_following_id == g.user.id).one_or_none()
+        update_follow.approved = False
+        db.session.add(update_follow)
+        db.session.commit()
 
     return redirect(f"/users/{g.user.id}/following")
 
@@ -238,6 +270,7 @@ def profile():
             user.image_url = form.image_url.data
             user.header_image_url = form.header_image_url.data
             user.bio = form.bio.data
+            user.is_private = form.is_private.data
             db.session.commit()
             do_login(user)
             flash("Your profile was successfully updated", "success")
